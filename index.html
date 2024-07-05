@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncy Ball Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #gameContainer {
+            background-color: #333;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            background-color: #222;
+            border-radius: 50%;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #ddd;
+        }
+
+        input[type="number"],
+        input[type="color"] {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #555;
+            border-radius: 3px;
+            background-color: #444;
+            color: #fff;
+        }
+
+        button {
+            grid-column: span 2;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label for="ballCount">Number of Balls:</label>
+                <input type="number" id="ballCount" min="1" max="50" value="5">
+            </div>
+            <div class="control-group">
+                <label for="ballSize">Ball Size:</label>
+                <input type="number" id="ballSize" min="1" max="50" value="10">
+            </div>
+            <div class="control-group">
+                <label for="ballColor">Ball Color:</label>
+                <input type="color" id="ballColor" value="#ffffff">
+            </div>
+            <div class="control-group">
+                <label for="circleColor">Circle Color:</label>
+                <input type="color" id="circleColor" value="#444444">
+            </div>
+            <div class="control-group">
+                <label for="bounciness">Bounciness:</label>
+                <input type="number" id="bounciness" min="0" max="1" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="circleSize">Circle Size:</label>
+                <input type="number" id="circleSize" min="100" max="390" value="390">
+            </div>
+            <div class="control-group">
+                <label for="ballSpeed">Ball Speed:</label>
+                <input type="number" id="ballSpeed" min="0.1" max="20" step="0.1" value="2">
+            </div>
+            <button id="applyChanges">Apply Changes</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const applyChangesBtn = document.getElementById('applyChanges');
+
+        let balls = [];
+        let circleRadius = 195;
+
+        class Ball {
+            constructor(x, y, radius, color, speed, angle, bounciness) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.speed = speed;
+                this.angle = angle;
+                this.bounciness = bounciness;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            update() {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                const distanceFromCenter = Math.sqrt(
+                    (this.x - canvas.width / 2) ** 2 + (this.y - canvas.height / 2) ** 2
+                );
+
+                if (distanceFromCenter + this.radius > circleRadius) {
+                    const normalAngle = Math.atan2(this.y - canvas.height / 2, this.x - canvas.width / 2);
+                    const incomingAngle = Math.atan2(Math.sin(this.angle), Math.cos(this.angle));
+                    
+                    const newAngle = 2 * normalAngle - incomingAngle;
+                    this.angle = newAngle + Math.PI + (Math.random() - 0.5) * 0.2;
+
+                    const newX = canvas.width / 2 + Math.cos(normalAngle) * (circleRadius - this.radius - 1);
+                    const newY = canvas.height / 2 + Math.sin(normalAngle) * (circleRadius - this.radius - 1);
+
+                    this.x = newX;
+                    this.y = newY;
+                }
+
+                this.draw();
+            }
+        }
+
+        function createBalls(count, size, color, speed, bounciness) {
+            balls = [];
+            for (let i = 0; i < count; i++) {
+                const radius = size;
+                const x = Math.random() * (circleRadius * 2 - radius * 2) + radius;
+                const y = Math.random() * (circleRadius * 2 - radius * 2) + radius;
+                const angle = Math.random() * Math.PI * 2;
+                balls.push(new Ball(x, y, radius, color, speed, angle, bounciness));
+            }
+        }
+
+        function drawCircle() {
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, circleRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = document.getElementById('circleColor').value;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawCircle();
+            balls.forEach(ball => ball.update());
+            requestAnimationFrame(animate);
+        }
+
+        function applyChanges() {
+            const ballCount = parseInt(document.getElementById('ballCount').value);
+            const ballSize = parseInt(document.getElementById('ballSize').value);
+            const ballColor = document.getElementById('ballColor').value;
+            const bounciness = parseFloat(document.getElementById('bounciness').value);
+            circleRadius = parseInt(document.getElementById('circleSize').value) / 2;
+            const ballSpeed = parseFloat(document.getElementById('ballSpeed').value);
+
+            createBalls(ballCount, ballSize, ballColor, ballSpeed, bounciness);
+        }
+
+        applyChangesBtn.addEventListener('click', applyChanges);
+
+        // Initial setup
+        applyChanges();
+        animate();
+    </script>
+</body>
+</html>
